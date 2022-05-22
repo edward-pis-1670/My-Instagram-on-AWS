@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 import fs from "fs";
@@ -15,7 +15,7 @@ import fs from "fs";
   app.use(bodyParser.json());
 
   // Process image route: GET /filteredimage?image_url=value
-  app.get("/filteredimage", async (req, res, next) => {
+  app.get("/filteredimage", async (req:Request, res: Response, next: NextFunction) => {
       const { image_url } = req.query;
 
       if (!image_url) {
@@ -24,13 +24,12 @@ import fs from "fs";
           });
       }
       // If inputURL has specific character, have to encodeURI
-      const inputURL = encodeURI(image_url); 
+      const inputURL : string = encodeURI(image_url); 
       try {
-          const result = await filterImageFromURL(inputURL);
+          const result : string = await filterImageFromURL(inputURL);
 
           // get files in folder /tmp/
           const files = fs.readdirSync(`${__dirname}/util/tmp/`);
-          console.log(files)
           const fileNameArray = files.map(data => {
           return `${__dirname}/util/tmp/${data}`
         })
