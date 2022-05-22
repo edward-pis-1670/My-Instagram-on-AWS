@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 import fs from "fs";
@@ -15,7 +15,7 @@ import fs from "fs";
   app.use(bodyParser.json());
 
   // Process image route: GET /filteredimage?image_url=value
-  app.get("/filteredimage", async (req, res) => {
+  app.get("/filteredimage", async (req:Request, res: Response, next: NextFunction) => {
       const { image_url } = req.query;
 
       if (!image_url) {
@@ -24,20 +24,24 @@ import fs from "fs";
           });
       }
       // If inputURL has specific character, have to encodeURI
-      const inputURL = encodeURI(image_url); 
+      const inputURL : string = encodeURI(image_url); 
       try {
-          const result = await filterImageFromURL(inputURL);
-          res.sendFile(result);
+          const result : string = await filterImageFromURL(inputURL);
 
-          // Handle delete files on /tmp/ folder , except current exported file 
+          // get files in folder /tmp/
           const files = fs.readdirSync(`${__dirname}/util/tmp/`);
-          const fileNameArray = files.filter(file => {
-              return !result.includes(file);
-          }).map(data => {
-            return `${__dirname}/util/tmp/${data}`
-          })
+          const fileNameArray = files.map(data => {
+          return `${__dirname}/util/tmp/${data}`
+        })
+          // Handle sendFile and then delete another file name
+          res.status(200).sendFile(result, async (err) => {
+            if (err) {
+              next(err);
+            } else {
+              await deleteLocalFiles(fileNameArray);
+            }
+          });
 
-          await deleteLocalFiles(fileNameArray);
       } catch (error) {
           return res.status(422).send({
             message: "Cannot process image. Something went very wrong!"
